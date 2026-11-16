@@ -13,9 +13,7 @@ class Config:
         if not self.base_path:
             return
 
-        self.plot_path = os.path.abspath(
-            os.path.join(self.base_path, "../plots")
-        )
+        self.plot_path = os.path.abspath(os.path.join(self.base_path, "../plots"))
         self.data_path = os.path.abspath(os.environ["COVID_DATA_PATH"])
 
         print(self.base_path)
