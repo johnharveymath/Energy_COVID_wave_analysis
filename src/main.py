@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     periods[periods["country"].isin(energy_countries)].to_csv(
         os.path.join(
-            CONFIG.data_path, f"dominance_periods_{int(DOMINANCE_THRESHOLD * 100)}.csv"
+            CONFIG.plot_path, f"dominance_periods_{int(DOMINANCE_THRESHOLD * 100)}.csv"
         )
     )
 
