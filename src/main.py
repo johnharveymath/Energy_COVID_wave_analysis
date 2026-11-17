@@ -8,6 +8,26 @@ from plot_variant_analysis import plot_country, plot_all_dominance
 from build_variant_df import build_df
 from dominance_analysis import get_dominance_periods
 
+
+def load_patient_list(filepath):
+    try:
+        patient_list = pd.read_csv(filepath)
+        patient_list["date_covid_onset"] = pd.to_datetime(
+            patient_list["date_covid_onset"], format="%d/%m/%Y"
+        )
+        patient_list["visit_date"] = pd.to_datetime(
+            patient_list["visit_date"], format="%d/%m/%Y"
+        )
+        patient_list["plot_date"] = patient_list["date_covid_onset"].where(
+            patient_list["date_covid_onset"].dt.year != 2001,
+            patient_list["visit_date"],
+        )
+    except FileNotFoundError:
+        patient_list = None
+
+    return patient_list
+
+
 if __name__ == "__main__":
 
     CONFIG = Config(os.path.dirname(os.path.realpath(__file__)))
@@ -18,34 +38,29 @@ if __name__ == "__main__":
     CUTOFF_DATE = pd.Timestamp("2022-12-31")
 
     df = build_df(CONFIG.data_path, FILENAME)
-    periods = get_dominance_periods(df, DOMINANCE_THRESHOLD)
-
-    patient_list = pd.read_csv(os.path.join(CONFIG.data_path, "patient_list.csv"))
-    energy_countries = patient_list["Country"].unique()
     gisaid_countries = sorted(df.index.get_level_values("country").unique())
 
-    for country in energy_countries:
-        if country not in gisaid_countries:
-            raise ValueError(f"{country} not found in GISAID data")
+    patient_list = load_patient_list(os.path.join(CONFIG.data_path, "patient_list.csv"))
 
-    periods[periods["country"].isin(energy_countries)].to_csv(
+    if patient_list is not None:
+        countries = sorted(patient_list["Country"].unique())
+        for country in countries:
+            if country not in gisaid_countries:
+                raise ValueError(f"{country} not found in GISAID data")
+    else:
+        countries = gisaid_countries
+
+    df = df.loc[df.index.get_level_values("country").isin(countries)]
+
+    periods = get_dominance_periods(df, DOMINANCE_THRESHOLD)
+
+    periods[periods["country"].isin(countries)].to_csv(
         os.path.join(
             CONFIG.plot_path, f"dominance_periods_{int(DOMINANCE_THRESHOLD * 100)}.csv"
         )
     )
 
-    patient_list["date_covid_onset"] = pd.to_datetime(
-        patient_list["date_covid_onset"], format="%d/%m/%Y"
-    )
-    patient_list["visit_date"] = pd.to_datetime(
-        patient_list["visit_date"], format="%d/%m/%Y"
-    )
-    patient_list["plot_date"] = patient_list["date_covid_onset"].where(
-        patient_list["date_covid_onset"].dt.year != 2001,
-        patient_list["visit_date"],
-    )
-
-    for country in energy_countries:
+    for country in countries:
         fig = plot_country(country, df, periods, CUTOFF_DATE, patient_list=patient_list)
         fig.savefig(
             os.path.join(CONFIG.plot_path, f"{country}_variants.png"),
@@ -54,7 +69,9 @@ if __name__ == "__main__":
         )
         plt.close(fig)
 
-    fig = plot_all_dominance(periods, energy_countries, CUTOFF_DATE, patient_list)
+    fig = plot_all_dominance(
+        periods, countries, CUTOFF_DATE, patient_list=patient_list
+    )
     fig.savefig(
         os.path.join(CONFIG.plot_path, "all_dominance.png"),
         dpi=300,

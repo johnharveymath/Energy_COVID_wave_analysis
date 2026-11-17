@@ -4,6 +4,29 @@ import pandas as pd
 from matplotlib.patches import Patch
 
 
+def get_variant_colors(variants):
+
+    colors = VARIANT_COLORS.copy()
+
+    used_colors = set(colors.values())
+
+    default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+    available_colors = [
+        c for c in default_colors
+        if c not in used_colors
+    ]
+
+    missing = sorted(
+        set(variants) - set(colors)
+    )
+
+    for i, variant in enumerate(missing):
+        colors[variant] = available_colors[i % len(available_colors)]
+
+    return colors
+    
+
 def plot_dominance(
     ax, country, periods, variant_colors, cutoff_date, patient_list=None
 ):
@@ -46,7 +69,7 @@ def plot_country(
     plot_threshold=0.1,
     patient_list=None,
 ):
-    variant_colors = VARIANT_COLORS.copy()
+    
 
     fig, (ax1, ax2) = plt.subplots(
         2, 1, figsize=(12, 5), sharex=True, gridspec_kw={"height_ratios": [4, 1]}
@@ -70,15 +93,9 @@ def plot_country(
     other_variants = sorted([v for v in plot_df.columns if v not in PLOT_ORDER])
     plot_df = plot_df[priority + other_variants]
 
-    used_colors = set(variant_colors.values())
-    default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    available_colors = [c for c in default_colors if c not in used_colors]
-
-    for i, variant in enumerate(other_variants):
-
-        if variant not in variant_colors:
-            variant_colors[variant] = available_colors[i % len(available_colors)]
-
+    variant_colors = get_variant_colors(
+        plot_df.columns
+    )
     plot_colors = [variant_colors[v] for v in plot_df.columns]
 
     ax1.stackplot(
@@ -116,10 +133,14 @@ def plot_all_dominance(periods, countries, cutoff_date, patient_list):
         sharex=True,
     )
 
+    variant_colors = get_variant_colors(
+        periods["dominant_variant"].dropna().unique()
+    )
+
     countries = np.sort(countries)
 
     for ax, country in zip(axes, countries):
-        plot_dominance(ax, country, periods, VARIANT_COLORS, cutoff_date, patient_list)
+        plot_dominance(ax, country, periods, variant_colors, cutoff_date, patient_list)
 
         ax.set_ylabel(
             country,
@@ -142,7 +163,7 @@ def plot_all_dominance(periods, countries, cutoff_date, patient_list):
                 "Wildtype" if variant == "Not recorded" else variant.replace("VOC ", "")
             ),
         )
-        for variant, color in VARIANT_COLORS.items()
+        for variant, color in variant_colors.items()
     ]
 
     fig.suptitle(
