@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from config import Config
-from plot_variant_analysis import plot_country, plot_all_dominance
+from plot_variant_analysis import get_variant_colors, plot_country, plot_all_dominance
 from build_variant_df import build_df
 from dominance_analysis import get_dominance_periods
 
@@ -53,7 +53,9 @@ if __name__ == "__main__":
     df = df.loc[df.index.get_level_values("country").isin(countries)]
 
     periods = get_dominance_periods(df, DOMINANCE_THRESHOLD)
-
+    variant_colors = get_variant_colors(
+        periods["dominant_variant"].dropna().unique()
+    )
     periods[periods["country"].isin(countries)].to_csv(
         os.path.join(
             CONFIG.plot_path, f"dominance_periods_{int(DOMINANCE_THRESHOLD * 100)}.csv"
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     )
 
     for country in countries:
-        fig = plot_country(country, df, periods, CUTOFF_DATE, patient_list=patient_list)
+        fig = plot_country(country, df, periods, variant_colors, CUTOFF_DATE, patient_list=patient_list)
         fig.savefig(
             os.path.join(CONFIG.plot_path, f"{country}_variants.png"),
             dpi=300,
@@ -70,7 +72,7 @@ if __name__ == "__main__":
         plt.close(fig)
 
     fig = plot_all_dominance(
-        periods, countries, CUTOFF_DATE, patient_list=patient_list
+        periods, countries, variant_colors, CUTOFF_DATE, patient_list=patient_list
     )
     fig.savefig(
         os.path.join(CONFIG.plot_path, "all_dominance.png"),
