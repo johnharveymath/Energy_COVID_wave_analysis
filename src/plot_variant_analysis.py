@@ -10,21 +10,16 @@ def get_variant_colors(variants):
     used_colors = set(colors.values())
     default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    available_colors = [
-        c for c in default_colors
-        if c not in used_colors
-    ]
+    available_colors = [c for c in default_colors if c not in used_colors]
     available_colors.append("#6a3d9a")
 
-    missing = sorted(
-        set(variants) - set(colors)
-    )
+    missing = sorted(set(variants) - set(colors))
 
     for i, variant in enumerate(missing):
         colors[variant] = available_colors[i % len(available_colors)]
 
     return colors
-    
+
 
 def plot_dominance(
     ax, country, periods, variant_colors, cutoff_date, patient_list=None
