@@ -46,7 +46,7 @@ if __name__ == "__main__":
     )
 
     for country in energy_countries:
-        fig = plot_country(country, df, periods, patient_list, CUTOFF_DATE)
+        fig = plot_country(country, df, periods, CUTOFF_DATE, patient_list=patient_list)
         fig.savefig(
             os.path.join(CONFIG.plot_path, f"{country}_variants.png"),
             dpi=300,
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         )
         plt.close(fig)
 
-    fig = plot_all_dominance(periods, energy_countries, patient_list, CUTOFF_DATE)
+    fig = plot_all_dominance(periods, energy_countries, CUTOFF_DATE, patient_list)
     fig.savefig(
         os.path.join(CONFIG.plot_path, "all_dominance.png"),
         dpi=300,

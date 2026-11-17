@@ -4,11 +4,10 @@ import pandas as pd
 from matplotlib.patches import Patch
 
 
-def plot_dominance(ax, country, periods, patient_list, variant_colors, cutoff_date):
+def plot_dominance(
+    ax, country, periods, variant_colors, cutoff_date, patient_list=None
+):
     periods_country = periods[periods["country"] == country]
-
-    country_visits = patient_list[patient_list["Country"] == country].copy()
-    country_visits = country_visits[country_visits["plot_date"] <= cutoff_date]
 
     for variant, group in periods_country.groupby("dominant_variant"):
         ax.broken_barh(
@@ -22,15 +21,18 @@ def plot_dominance(ax, country, periods, patient_list, variant_colors, cutoff_da
             facecolors=variant_colors[variant],
         )
 
-    ax.scatter(
-        country_visits["plot_date"],
-        np.zeros(len(country_visits)),
-        marker="x",
-        s=40,
-        c="black",
-        linewidths=1.5,
-        zorder=10,
-    )
+    if patient_list is not None:
+        country_visits = patient_list[patient_list["Country"] == country].copy()
+        country_visits = country_visits[country_visits["plot_date"] <= cutoff_date]
+        ax.scatter(
+            country_visits["plot_date"],
+            np.zeros(len(country_visits)),
+            marker="x",
+            s=40,
+            c="black",
+            linewidths=1.5,
+            zorder=10,
+        )
 
     ax.set_yticks([])
     ax.set_xlim(pd.Timestamp("2019-11-25"), cutoff_date)
@@ -40,9 +42,9 @@ def plot_country(
     country,
     df,
     periods,
-    patient_list,
     cutoff_date,
     plot_threshold=0.1,
+    patient_list=None,
 ):
     variant_colors = VARIANT_COLORS.copy()
 
@@ -98,7 +100,7 @@ def plot_country(
         bbox_to_anchor=(1.01, 0.5),
     )
 
-    plot_dominance(ax2, country, periods, patient_list, variant_colors, cutoff_date)
+    plot_dominance(ax2, country, periods, variant_colors, cutoff_date, patient_list)
     ax2.set_xlim(right=cutoff_date)
 
     plt.tight_layout()
@@ -106,7 +108,7 @@ def plot_country(
     return fig
 
 
-def plot_all_dominance(periods, countries, patient_list, cutoff_date):
+def plot_all_dominance(periods, countries, cutoff_date, patient_list):
     fig, axes = plt.subplots(
         len(countries),
         1,
@@ -117,7 +119,7 @@ def plot_all_dominance(periods, countries, patient_list, cutoff_date):
     countries = np.sort(countries)
 
     for ax, country in zip(axes, countries):
-        plot_dominance(ax, country, periods, patient_list, VARIANT_COLORS, cutoff_date)
+        plot_dominance(ax, country, periods, VARIANT_COLORS, cutoff_date, patient_list)
 
         ax.set_ylabel(
             country,
@@ -136,7 +138,9 @@ def plot_all_dominance(periods, countries, patient_list, cutoff_date):
     legend_handles = [
         Patch(
             facecolor=color,
-            label=variant.replace("VOC ", ""),
+            label=(
+                "Wildtype" if variant == "Not recorded" else variant.replace("VOC ", "")
+            ),
         )
         for variant, color in VARIANT_COLORS.items()
     ]
